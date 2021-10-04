@@ -11,7 +11,7 @@ def task_1():
     # Creates the tables if they don't already exist
     # setup.create_tables()
     # Shows the tables
-    setup.show_tables()
+    # setup.show_tables()
     # prints the user
     # setup.print_users()
     # Insert user.
@@ -19,6 +19,7 @@ def task_1():
     setup.insert_activity()
     # setup.print_activity()
     # setup.insert_trajectory()
+    setup.batch_insert()
 
 
 def task_2():
