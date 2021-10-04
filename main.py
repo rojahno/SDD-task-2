@@ -15,8 +15,8 @@ def task_1():
     # prints the user
     # setup.print_users()
     # Insert user.
-    # setup.insert_users()
-    # setup.insert_activity()
+    setup.insert_users()
+    setup.insert_activity()
     setup.print_activity()
     # setup.insert_trajectory()
 

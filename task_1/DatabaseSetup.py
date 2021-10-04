@@ -1,3 +1,5 @@
+import uuid
+
 from DbConnector import DbConnector
 from tabulate import tabulate
 import os
@@ -27,7 +29,7 @@ class DatabaseSetup:
 
     def create_activity_table(self):
         query = """CREATE TABLE IF NOT EXISTS ACTIVITY (
-                   id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
+                   id varchar(36) NOT NULL PRIMARY KEY,
                    user_id VARCHAR(50) NOT NULL,
                    FOREIGN KEY (user_id) REFERENCES test_db.USER(id),
                    transportation_mode VARCHAR(30), 
@@ -40,7 +42,7 @@ class DatabaseSetup:
     def create_track_point_table(self):
         query = """CREATE TABLE IF NOT EXISTS TRACK_POINT (
                    id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
-                   activity_id INT NOT NULL,
+                   activity_id varchar(36) NOT NULL,
                    FOREIGN KEY (activity_id) REFERENCES test_db.ACTIVITY(id),
                    lat DOUBLE,
                    lon DOUBLE, 
@@ -175,17 +177,20 @@ class DatabaseSetup:
                         user_id = os.path.basename(os.path.basename(root))
                         for line in f:
                             start_time, end_time, transportation_mode = self.format_label_line(line)
-                            query = """INSERT INTO test_db.ACTIVITY (user_id, start_date_time, end_date_time, 
+                            activity_id = uuid.uuid4()
+                            query = """INSERT INTO test_db.ACTIVITY (id, user_id, start_date_time, end_date_time, 
                                           transportation_mode) 
-                                                      VALUES ('%s', '%s', '%s', '%s')"""
+                                                      VALUES ('%s', '%s', '%s', '%s', '%s')"""
                             # Todo test execute many
-                            self.cursor.execute(query % (user_id, start_time, end_time, transportation_mode))
+                            self.cursor.execute(query % (activity_id, user_id, start_time, end_time, transportation_mode))
         self.db_connection.commit()
 
     def insert_activity(self):
         """
         Todo add a try catch
         """
+        track_points = []
+        activities = []
         self.insert_labels()
         for root, dirs, files in os.walk('dataset/dataset/Data', topdown=True):
             if len(dirs) == 0 and len(files) > 0:
@@ -199,10 +204,10 @@ class DatabaseSetup:
                         last_line = self.get_last_line(root, file)
                         start_time = self.format_trajectory_time(first_line)
                         end_time = self.format_trajectory_time(last_line)
-
-                        query = """INSERT INTO test_db.ACTIVITY (user_id, start_date_time, end_date_time) 
-                                       VALUES ('%s', '%s', '%s')"""
-                        self.cursor.execute(query % (user_id, start_time, end_time))
+                        id = uuid.uuid4()
+                        query = """INSERT INTO test_db.ACTIVITY (id, user_id, start_date_time, end_date_time) 
+                                       VALUES ('%s', '%s', '%s', '%s')"""
+                        self.cursor.execute(query % (id, user_id, start_time, end_time))
 
         # Todo test the commit position
         self.db_connection.commit()
