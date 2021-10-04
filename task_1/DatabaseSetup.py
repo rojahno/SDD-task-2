@@ -4,6 +4,10 @@ from DbConnector import DbConnector
 from tabulate import tabulate
 import os
 
+from task_1.User import User
+from task_1.Activity import Activity
+from task_1.TrackPoint import TrackPoint
+
 """
 Handles the database setup.
 - Creates the tables
@@ -18,6 +22,7 @@ class DatabaseSetup:
         self.connection = connection
         self.db_connection = self.connection.db_connection
         self.cursor = self.connection.cursor
+        self.activity_dict = {}
 
     def create_user_table(self):
         query = """CREATE TABLE IF NOT EXISTS USER (
@@ -94,9 +99,7 @@ class DatabaseSetup:
         print(tabulate(rows, headers=self.cursor.column_names))
 
     def is_plt_file(self, extension):
-        if extension == ".plt":
-            return True
-        return False
+        return extension == ".plt"
 
     def get_extension(self, path):
         name, extension = os.path.splitext(path)
@@ -119,7 +122,7 @@ class DatabaseSetup:
         return labels
 
     def get_user_ids(self):
-        path = "dataset/dataset/data"
+        path = "dataset/dataset/Data"
         user_ids = sorted([f for f in os.listdir(path) if not f.startswith('.')])
         return user_ids
 
