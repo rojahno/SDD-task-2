@@ -138,3 +138,36 @@ class Queries:
         print(
             f"Distinct users on each activity:"
             f"\n {tabulate(rows, headers=self.cursor.column_names)}")
+
+    def select_year_with_most_activities(self):
+        query = """SELECT distinct year(test_db.ACTIVITY.start_date_time) as start_time_year, count(test_db.ACTIVITY.user_id) as nr_of_activities
+                        FROM test_db.ACTIVITY
+                        group by year(test_db.ACTIVITY.start_date_time)
+                        order by nr_of_activities desc 
+                        LIMIT 1
+
+                     """
+
+        self.cursor.execute(query)
+        rows = self.cursor.fetchall()
+        # Using tabulate to show the table in a nice way
+        print(
+            f"The year with most activities:"
+            f"\n {tabulate(rows, headers=self.cursor.column_names)}")
+
+    def select_month_with_most_activities(self):
+        # Remove limit 1 to see the whole list
+        query = """SELECT distinct month(test_db.ACTIVITY.start_date_time) as start_time_year, count(test_db.ACTIVITY.user_id) as nr_of_activities
+                    FROM test_db.ACTIVITY
+                    group by start_time_year
+                    order by nr_of_activities desc 
+                    LIMIT 1
+
+                 """
+
+        self.cursor.execute(query)
+        rows = self.cursor.fetchall()
+        # Using tabulate to show the table in a nice way
+        print(
+            f"The month with most activities:"
+            f"\n {tabulate(rows, headers=self.cursor.column_names)}")

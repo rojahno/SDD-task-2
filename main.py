@@ -52,7 +52,13 @@ def task_2():
 
     # Find all types of transportation modes and count how many distinct users that
     # have used the different transportation modes
-    query.select_nr_used_transportation()
+    # query.select_nr_used_transportation()
+
+    # Find the year with most activities
+    query.select_year_with_most_activities()
+
+    # The month with most activities
+    query.select_month_with_most_activities()
 
 
 def task_3():
