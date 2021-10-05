@@ -233,8 +233,8 @@ class DatabaseSetup:
         self.db_connection.commit()
 
     def insert_activities_2(self, activity: Activity):
-        query = """INSERT INTO test_db.ACTIVITY (id, user_id, transportation_mode, start_date_time, end_date_time) 
-                            VALUES ('%s', '%s','%s','%s','%s')"""
+        query = """INSERT INTO test_db.ACTIVITY (id, user_id, start_date_time, end_date_time) 
+                            VALUES ('%s', '%s','%s','%s')"""
         self.cursor.execute((query % (
             activity.id, activity.user_id, activity.transportation_mode, activity.start_date_time,
             activity.end_date_time)))
