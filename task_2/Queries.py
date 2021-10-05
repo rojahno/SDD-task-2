@@ -111,7 +111,6 @@ class Queries:
             f"\n {tabulate(rows, headers=self.cursor.column_names)}")
 
     def select_never_taxi_user(self):
-        # todo seems to simple?
         query = """SELECT distinct test_db.ACTIVITY.user_id, test_db.ACTIVITY.transportation_mode
                     FROM test_db.ACTIVITY
                     where transportation_mode != 'taxi'
@@ -122,5 +121,20 @@ class Queries:
         rows = self.cursor.fetchall()
         # Using tabulate to show the table in a nice way
         print(
-            f"Repeated activities:"
+            f"Users who have never used taxi:"
+            f"\n {tabulate(rows, headers=self.cursor.column_names)}")
+
+    def select_nr_used_transportation(self):
+        query = """SELECT distinct test_db.ACTIVITY.transportation_mode, count(distinct test_db.ACTIVITY.user_id)
+                    FROM test_db.ACTIVITY, test_db.USER
+                    where transportation_mode != 'None' AND test_db.ACTIVITY.user_id = test_db.USER.id
+                    group by test_db.ACTIVITY.transportation_mode
+
+                 """
+
+        self.cursor.execute(query)
+        rows = self.cursor.fetchall()
+        # Using tabulate to show the table in a nice way
+        print(
+            f"Distinct users on each activity:"
             f"\n {tabulate(rows, headers=self.cursor.column_names)}")
