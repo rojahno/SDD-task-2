@@ -44,6 +44,9 @@ def task_2():
     # Find user who have started an activity one day, and finished it the other
     # query.select_nr_users_with_multiple_day_activities()
 
+    # Find activities that are registered multiple times
+    query.select_reoccurring_activities()
+
 
 def task_3():
     print('task 3')

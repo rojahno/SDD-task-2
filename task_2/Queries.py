@@ -91,3 +91,20 @@ class Queries:
         print(
             f"Users who have started an activity one day, finished it another:"
             f"\n {tabulate(rows, headers=self.cursor.column_names)}")
+
+    def select_reoccurring_activities(self):
+        # todo test this function. unsure if correct
+        query = """SELECT test_db.ACTIVITY.start_date_time, COUNT(test_db.ACTIVITY.start_date_time), test_db.ACTIVITY.end_date_time, COUNT(test_db.ACTIVITY.end_date_time)
+                 FROM test_db.ACTIVITY
+                 GROUP BY test_db.ACTIVITY.start_date_time, test_db.ACTIVITY.end_date_time
+                 HAVING COUNT(test_db.ACTIVITY.start_date_time) > 1 AND
+                        COUNT(test_db.ACTIVITY.end_date_time) > 1
+                 ORDER BY test_db.ACTIVITY.start_date_time ASC 
+                 """
+
+        self.cursor.execute(query)
+        rows = self.cursor.fetchall()
+        # Using tabulate to show the table in a nice way
+        print(
+            f"Repeated activities:"
+            f"\n {tabulate(rows, headers=self.cursor.column_names)}")
