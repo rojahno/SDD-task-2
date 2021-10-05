@@ -78,4 +78,16 @@ class Queries:
         # Using tabulate to show the table in a nice way
         print(f"Max 10 amount of activities of USER:\n {tabulate(rows, headers=self.cursor.column_names)}")
 
+    def select_nr_users_with_multiple_day_activities(self):  # very good function name :))
+        query = """SELECT COUNT(DISTINCT user_id)
+               FROM test_db.ACTIVITY
+               where (select CAST(test_db.ACTIVITY.start_date_time AS DATE) 
+               != (SELECT CAST(test_db.ACTIVITY.end_date_time as DATE)))
+               """
 
+        self.cursor.execute(query)
+        rows = self.cursor.fetchall()
+        # Using tabulate to show the table in a nice way
+        print(
+            f"Users who have started an activity one day, finished it another:"
+            f"\n {tabulate(rows, headers=self.cursor.column_names)}")

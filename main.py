@@ -39,7 +39,10 @@ def task_2():
     # query.select_max_nr_of_activities()
 
     # Find top 10 users with the highest amount of activities
-    query.select_ten_max_nr_of_activities()
+    # query.select_ten_max_nr_of_activities()
+
+    # Find user who have started an activity one day, and finished it the other
+    # query.select_nr_users_with_multiple_day_activities()
 
 
 def task_3():
