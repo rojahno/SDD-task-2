@@ -1,5 +1,6 @@
 from DbConnector import DbConnector
 from task_1.DatabaseSetup import DatabaseSetup
+from task_2.Queries import Queries
 
 
 def task_1():
@@ -23,7 +24,22 @@ def task_1():
 
 
 def task_2():
-    print('task 2')
+    # Creates a connection with the database
+    connector = DbConnector()
+    query = Queries(connector)
+
+    # Selects the number of each table
+    # query.select_nr_of_users()
+    # query.select_nr_of_activities()
+    # query.select_nr_of_track_points()
+
+    # Selects average, min and max
+    # query.select_average_nr_of_activities()
+    # query.select_min_nr_of_activities()
+    # query.select_max_nr_of_activities()
+
+    # Find top 10 users with the highest amount of activities
+    query.select_ten_max_nr_of_activities()
 
 
 def task_3():
@@ -31,7 +47,7 @@ def task_3():
 
 
 def main():
-    task_1()
+    task_2()
 
 
 if __name__ == "__main__":
