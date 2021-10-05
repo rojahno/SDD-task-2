@@ -7,19 +7,19 @@ def task_1():
     connector = DbConnector()
     # Creates a database setup object
     setup = DatabaseSetup(connector)
-    # setup.drop_tables()
+    setup.drop_tables()
     # Creates the tables if they don't already exist
-    # setup.create_tables()
+    setup.create_tables()
     # Shows the tables
-    # setup.show_tables()
+    setup.show_tables()
     # prints the user
     # setup.print_users()
     # Insert user.
-    # setup.insert_users()
+    setup.insert_users()
     setup.insert_activity()
     # setup.print_activity()
-    # setup.insert_trajectory()
-    setup.batch_insert()
+    # setup.batch_insert_activities()
+    # setup.batch_insert_track_points()
 
 
 def task_2():
