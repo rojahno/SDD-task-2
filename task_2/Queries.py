@@ -94,12 +94,28 @@ class Queries:
 
     def select_reoccurring_activities(self):
         # todo test this function. unsure if correct
-        query = """SELECT test_db.ACTIVITY.start_date_time, COUNT(test_db.ACTIVITY.start_date_time), test_db.ACTIVITY.end_date_time, COUNT(test_db.ACTIVITY.end_date_time)
+        query = """SELECT test_db.ACTIVITY.start_date_time, COUNT(test_db.ACTIVITY.start_date_time),
+                 test_db.ACTIVITY.end_date_time, COUNT(test_db.ACTIVITY.end_date_time)
                  FROM test_db.ACTIVITY
                  GROUP BY test_db.ACTIVITY.start_date_time, test_db.ACTIVITY.end_date_time
                  HAVING COUNT(test_db.ACTIVITY.start_date_time) > 1 AND
                         COUNT(test_db.ACTIVITY.end_date_time) > 1
                  ORDER BY test_db.ACTIVITY.start_date_time ASC 
+                 """
+
+        self.cursor.execute(query)
+        rows = self.cursor.fetchall()
+        # Using tabulate to show the table in a nice way
+        print(
+            f"Repeated activities:"
+            f"\n {tabulate(rows, headers=self.cursor.column_names)}")
+
+    def select_never_taxi_user(self):
+        # todo seems to simple?
+        query = """SELECT distinct test_db.ACTIVITY.user_id, test_db.ACTIVITY.transportation_mode
+                    FROM test_db.ACTIVITY
+                    where transportation_mode != 'taxi'
+
                  """
 
         self.cursor.execute(query)

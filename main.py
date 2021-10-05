@@ -45,7 +45,10 @@ def task_2():
     # query.select_nr_users_with_multiple_day_activities()
 
     # Find activities that are registered multiple times
-    query.select_reoccurring_activities()
+    # query.select_reoccurring_activities()
+
+    # Find users who have never taken a taxi
+    query.select_never_taxi_user()
 
 
 def task_3():
