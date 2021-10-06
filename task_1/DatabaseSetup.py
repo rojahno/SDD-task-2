@@ -236,8 +236,7 @@ class DatabaseSetup:
         query = """INSERT INTO test_db.ACTIVITY (id, user_id, start_date_time, end_date_time) 
                             VALUES ('%s', '%s','%s','%s')"""
         self.cursor.execute((query % (
-            activity.id, activity.user_id, activity.transportation_mode, activity.start_date_time,
-            activity.end_date_time)))
+            activity.id, activity.user_id, activity.start_date_time, activity.end_date_time)))
         self.db_connection.commit()
 
     def batch_insert_track_points(self, track_points: list):
