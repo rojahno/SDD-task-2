@@ -202,6 +202,28 @@ class Queries:
             f"\n {tabulate(rows, headers=self.cursor.column_names)}")
 
 
+    def tot_dist_in_2008_by_user_112(self):
+        activity_ids_query = """SELECT test_db.ACTIVITY.id FROM test_db.ACTIVITY 
+                                    WHERE test_db.ACTIVITY.user_id= 112
+                                    AND  year(test_db.ACTIVITY.start_date_time) = 2008;"""
+
+        self.cursor.execute(activity_ids_query)
+        activity_ids = self.cursor.fetchall()
+
+        distances = []
+        for act_id in activity_ids:
+
+            lat_lon_query = """SELECT test_db.TRACK_POINT.lat as latitude, test_db.TRACK_POINT.lon as longitude
+                                            FROM test_db.TRACK_POINT
+                                            WHERE test_db.TRACK_POINT.activity_id = %s"""
+            self.cursor.execute(lat_lon_query % act_id)
+            lat_lons_for_activity = self.cursor.fetchall()
+            for i in range(0, len(lat_lons_for_activity) - 1):
+                distances.append(haversine(lat_lons_for_activity[i], lat_lons_for_activity[i + 1]))
+
+
+
+
     # Nr 11
     def select_top_20_users_with_most_gained(self):
         query = """SELECT distinct test_db.ACTIVITY.user_id, 
@@ -237,24 +259,4 @@ class Queries:
         print(
             f"The top 20 user with the most altitude gained:"
             f"\n {tabulate(rows, headers=self.cursor.column_names)}")
-
-
-    def tot_dist_in_2008_by_user_112(self):
-        activity_ids_query = """SELECT test_db.ACTIVITY.id FROM test_db.ACTIVITY 
-                                    WHERE test_db.ACTIVITY.user_id= 112
-                                    AND  year(test_db.ACTIVITY.start_date_time) = 2008;"""
-
-        self.cursor.execute(activity_ids_query)
-        activity_ids = self.cursor.fetchall()
-
-        distances = []
-        for act_id in activity_ids:
-
-            lat_lon_query = """SELECT test_db.TRACK_POINT.lat as latitude, test_db.TRACK_POINT.lon as longitude
-                                            FROM test_db.TRACK_POINT
-                                            WHERE test_db.TRACK_POINT.activity_id = %s"""
-            self.cursor.execute(lat_lon_query % act_id)
-            lat_lons_for_activity = self.cursor.fetchall()
-            for i in range(0, len(lat_lons_for_activity) - 1):
-                distances.append(haversine(lat_lons_for_activity[i], lat_lons_for_activity[i + 1]))
 
