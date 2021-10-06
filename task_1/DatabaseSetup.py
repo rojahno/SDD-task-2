@@ -115,7 +115,6 @@ class DatabaseSetup:
         @rtype: list
         """
         label_path = "dataset/dataset/labeled_ids.txt"
-        # This approach is not scalable, since it loads the entire dataset into memory.
         labels = open(label_path, 'r').read().splitlines()
         return labels
 
@@ -165,7 +164,7 @@ class DatabaseSetup:
                     f.seek(-2, os.SEEK_CUR)
                 return f.readline().decode()
         except Exception as e:
-            print(f'An error occurred while inserting users:{e}')
+            print(f'An error occurred while retrieving the last line in the file:{e}')
 
     def get_first_line(self, root: str, file: str):
         """
@@ -180,11 +179,11 @@ class DatabaseSetup:
         try:
             with open(os.path.join(root, file)) as f:
                 return_line = ""
-                for read in range(7):  # todo find another way to get the first track points in the file
+                for read in range(7):
                     return_line = f.readline()  # removes the first lines containing descriptions.
                 return return_line
         except Exception as e:
-            print(f'An error occurred while inserting users:{e}')
+            print(f'An error occurred while retrieving the first line in the file:{e}')
 
     def format_label_line(self, label: str):
         """
@@ -257,7 +256,6 @@ class DatabaseSetup:
                         for line in f:
                             start_time, end_time, transportation_mode = self.format_label_line(line)
                             activity_id = str(uuid.uuid4())
-                            # activity = Activity(activity_id, user_id, transportation_mode, start_time, end_time)
                             label_activity_list.append(
                                 (activity_id, user_id, transportation_mode, start_time, end_time))
         return label_activity_list
@@ -297,10 +295,13 @@ class DatabaseSetup:
         @return: None
         @rtype: None
         """
-        activity_query = """INSERT INTO test_db.ACTIVITY (id, user_id, transportation_mode, start_date_time, end_date_time) 
-                                VALUES (%s, %s, %s, %s, %s)"""
-        self.cursor.executemany(activity_query, label_activity_list)
-        self.db_connection.commit()
+        try:
+            activity_query = """INSERT INTO test_db.ACTIVITY (id, user_id, transportation_mode, start_date_time, end_date_time) 
+                                    VALUES (%s, %s, %s, %s, %s)"""
+            self.cursor.executemany(activity_query, label_activity_list)
+            self.db_connection.commit()
+        except Exception as e:
+            print(f'An error occurred while batch inserting activities:{e}')
 
     def insert_activity(self, activity: Activity):
         """
@@ -310,11 +311,14 @@ class DatabaseSetup:
         @return: None
         @rtype: None
         """
-        query = """INSERT INTO test_db.ACTIVITY (id, user_id, start_date_time, end_date_time) 
+        try:
+            query = """INSERT INTO test_db.ACTIVITY (id, user_id, start_date_time, end_date_time) 
                                 VALUES ('%s', '%s','%s','%s')"""
-        self.cursor.execute((query % (
-            activity.id, activity.user_id, activity.start_date_time, activity.end_date_time)))
-        self.db_connection.commit()
+            self.cursor.execute((query % (
+                activity.id, activity.user_id, activity.start_date_time, activity.end_date_time)))
+            self.db_connection.commit()
+        except Exception as e:
+            print(f'An error occurred while inserting Activity:{e}')
 
     def batch_insert_track_points(self, track_points: list):
         """
@@ -324,8 +328,10 @@ class DatabaseSetup:
         @return: None
         @rtype: None
         """
-        trajectory_query = """INSERT INTO test_db.TRACK_POINT (activity_id, lat, lon, altitude, data_days, data_time) 
+        try:
+            trajectory_query = """INSERT INTO test_db.TRACK_POINT (activity_id, lat, lon, altitude, data_days, data_time) 
                                   VALUES (%s, %s, %s, %s, %s, %s)"""
-        self.cursor.executemany(trajectory_query, track_points)
-
-        self.db_connection.commit()
+            self.cursor.executemany(trajectory_query, track_points)
+            self.db_connection.commit()
+        except Exception as e:
+            print(f'An error occurred while batch inserting track points:{e}')

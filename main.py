@@ -3,23 +3,21 @@ from task_1.DatabaseSetup import DatabaseSetup
 
 
 def task_1():
-    # Creates a connection with the database
-    connector = DbConnector()
-    # Creates a database setup object
-    setup = DatabaseSetup(connector)
-    # setup.drop_tables()
-    # Creates the tables if they don't already exist
-    setup.create_tables()
-    # Shows the tables
-    setup.show_tables()
-    # prints the user
-    # setup.print_users()
-    # Insert user.
-    setup.insert_users()
-    # setup.traverse_dataset()
-    # setup.print_activity()
-    # setup.batch_insert_activities()
-    # setup.batch_insert_track_points()
+    try:
+        # Creates a connection with the database
+        connector = DbConnector()
+        # Creates a database setup object
+        setup = DatabaseSetup(connector)
+        # Drops the table if it is already created
+        setup.drop_tables()
+        # Creates the tables if they don't already exist
+        setup.create_tables()
+        # Insert user.
+        setup.insert_users()
+        # Inserts activities and track points
+        setup.traverse_dataset()
+    except Exception as e:
+        print(f'An error occurred in task_1:{e}')
 
 
 def task_2():
