@@ -179,8 +179,60 @@ class Queries:
 
     # Nr 9 b
     def select_user_with_most_activities_this_year(self):
-        query = """SELECT 
-
-
+        query = """SELECT test_db.ACTIVITY.user_id as users,
+                    count(test_db.ACTIVITY.id) as nr_of_activities,
+                    sum(time_to_sec(timediff(end_date_time, start_date_time))/3600) as sum_hours
+                FROM test_db.ACTIVITY
+                WHERE 
+                    year(test_db.ACTIVITY.start_date_time) = 2008
+                 and 
+                    month(test_db.ACTIVITY.start_date_time) = 5
+                group by user_id
+                order by nr_of_activities desc
+                LIMIT 1
                 """
 
+
+        self.cursor.execute(query)
+        rows = self.cursor.fetchall()
+        # Using tabulate to show the table in a nice way
+        print(
+            f"The user with the most activities:"
+            f"\n {tabulate(rows, headers=self.cursor.column_names)}")
+
+
+    # Nr 11
+    def select_top_20_users_with_most_gained(self):
+        query = """SELECT distinct test_db.ACTIVITY.user_id, 
+                    (count(test_db.TRACK_POINT.altitude))/3 as nr_of_altitude_gained
+                FROM test_db.ACTIVITY right join test_db.TRACK_POINT ON ACTIVITY.user_id = TRACK_POINT.altitude
+                WHERE test_db.TRACK_POINT.altitude != -777
+                group by user_id
+                order by nr_of_altitude_gained desc
+                LIMIT 20
+                """
+
+        self.cursor.execute(query)
+        rows = self.cursor.fetchall()
+        # Using tabulate to show the table in a nice way
+        print(
+            f"The top 20 user with the most altitude gained:"
+            f"\n {tabulate(rows, headers=self.cursor.column_names)}")
+
+
+    # Nr. 12
+    def select_all_users_with_invalid_activities(self):
+        query = """SELECT distinct test_db.ACTIVITY.user_id,
+                    count(test_db.ACTIVITY.user_id) as nr_of_activities
+                FROM test_db.ACTIVITY right join test_db.TRACK_POINT ON ACTIVITY.user_id = TRACK_POINT.date_day
+                group by user_id
+                order by nr_of_activities
+                """
+
+
+        self.cursor.execute(query)
+        rows = self.cursor.fetchall()
+        # Using tabulate to show the table in a nice way
+        print(
+            f"The top 20 user with the most altitude gained:"
+            f"\n {tabulate(rows, headers=self.cursor.column_names)}")

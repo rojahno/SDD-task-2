@@ -55,11 +55,19 @@ def task_2():
     # query.select_nr_used_transportation()
 
     # Find the year with most activities
-    query.select_year_with_most_activities()
+    # query.select_year_with_most_activities()
 
     # The month with most activities
     query.select_month_with_most_activities()
 
+    # User with the most activities bis year and month
+    query.select_user_with_most_activities_this_year()
+
+    # Top 20 users ho have gained the most altitude
+    #query.select_top_20_users_with_most_gained()
+
+    # All users with invalid activities
+    #query.select_all_users_with_invalid_activities()
 
 def task_3():
     print('task 3')
