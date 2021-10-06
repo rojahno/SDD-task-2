@@ -158,11 +158,9 @@ class DatabaseSetup:
         @rtype: str
         """
         try:
-            with open(os.path.join(root, file), "rb") as f:
-                f.seek(-2, os.SEEK_END)
-                while f.read(1) != b'\n':
-                    f.seek(-2, os.SEEK_CUR)
-                return f.readline().decode()
+            path = os.path.join(root, file)  # The current path
+            with open(path, "r") as f1:
+                return f1.readlines()[-1]
         except Exception as e:
             print(f'An error occurred while retrieving the last line in the file:{e}')
 
