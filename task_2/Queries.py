@@ -10,6 +10,7 @@ class Queries:
         self.db_connection = self.connection.db_connection
         self.cursor = self.connection.cursor
 
+        # Nr 1
     def select_nr_of_users(self):
         query = "SELECT count(*) FROM test_db.USER"
         self.cursor.execute(query)
@@ -17,6 +18,7 @@ class Queries:
         # Using tabulate to show the table in a nice way
         print(f"Amount of USER:\n {tabulate(rows)}")
 
+        # Nr 1
     def select_nr_of_activities(self):
         query = "SELECT count(*) FROM test_db.ACTIVITY"
         self.cursor.execute(query)
@@ -24,6 +26,7 @@ class Queries:
         # Using tabulate to show the table in a nice way
         print(f"Amount of ACTIVITY:\n {tabulate(rows)}")
 
+        # Nr 1
     def select_nr_of_track_points(self):
         query = "SELECT count(*) FROM test_db.TRACK_POINT"
         self.cursor.execute(query)
@@ -31,6 +34,7 @@ class Queries:
         # Using tabulate to show the table in a nice way
         print(f"Amount of TRACK_POINTS:\n {tabulate(rows)}")
 
+        # Nr 2
     def select_average_nr_of_activities(self):
         query = """SELECT 
                    (SELECT COUNT(*) FROM test_db.ACTIVITY)  /  (SELECT COUNT(*) FROM test_db.USER) 
@@ -40,6 +44,7 @@ class Queries:
         # Using tabulate to show the table in a nice way
         print(f"Amount of Average:\n {tabulate(rows)}")
 
+        # Nr 2
     def select_min_nr_of_activities(self):
         query = """SELECT min(my_count) AS min_count
                FROM (SELECT test_db.ACTIVITY.user_id, count(test_db.ACTIVITY.user_id) AS my_count
@@ -171,3 +176,11 @@ class Queries:
         print(
             f"The month with most activities:"
             f"\n {tabulate(rows, headers=self.cursor.column_names)}")
+
+    # Nr 9 b
+    def select_user_with_most_activities_this_year(self):
+        query = """SELECT 
+
+
+                """
+
