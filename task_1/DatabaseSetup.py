@@ -20,8 +20,6 @@ class DatabaseSetup:
         self.connection = connection
         self.db_connection = self.connection.db_connection
         self.cursor = self.connection.cursor
-        self.activity_list = []
-        self.trackpoint_list = []
 
     def create_user_table(self):
         query = """CREATE TABLE IF NOT EXISTS USER (
@@ -100,28 +98,45 @@ class DatabaseSetup:
 
     def get_nr_of_lines(self, path):
         """
-        todo Check if this could be done in a cheaper way.
-        todo Currently O(n). Want to have Big O(1) if possible.
+        Returns the number of lines in the file
+        @param path: The path of the file
+        @type path: str
+        @return: Number of lines
+        @rtype: int
         """
         reoccurring_lines = 6  # The 6 lines in the top which are not trajectories
         num_lines = sum(1 for line in open(path)) - reoccurring_lines
         return num_lines
 
     def get_user_label(self):
+        """
+        Returns the user labels in a list. Loads the entire file into memory and should not be used on large files.
+        @return: A list of labels
+        @rtype: list
+        """
         label_path = "dataset/dataset/labeled_ids.txt"
         # This approach is not scalable, since it loads the entire dataset into memory.
         labels = open(label_path, 'r').read().splitlines()
         return labels
 
     def get_user_ids(self):
+        """
+        Searches the dataset folder for user ids and returns a sorted list of user ids.
+        @return: A sorted list of user ids
+        @rtype: list
+        """
         path = "dataset/dataset/Data"
         user_ids = sorted([f for f in os.listdir(path) if not f.startswith('.')])
         return user_ids
 
     def insert_users(self):
+        """
+        Inserts users to the database
+        @return: None
+        @rtype: None
+        """
         user_labels = self.get_user_label()
         user_ids = self.get_user_ids()
-        user_list = []
 
         try:
             for user in user_ids:
@@ -135,6 +150,14 @@ class DatabaseSetup:
             print(f'An error occurred while inserting users:{e}')
 
     def get_last_line(self, root: str, file: str):
+        """
+        @param root: The path of the file
+        @type root: str
+        @param file: The name of the file
+        @type file:str
+        @return: The last line in the file
+        @rtype: str
+        """
         try:
             with open(os.path.join(root, file), "rb") as f:
                 f.seek(-2, os.SEEK_END)
@@ -145,6 +168,15 @@ class DatabaseSetup:
             print(f'An error occurred while inserting users:{e}')
 
     def get_first_line(self, root: str, file: str):
+        """
+        Returns the first relevant line
+        @param root: The path of the file
+        @type root: str
+        @param file: The name of the file
+        @type file:str
+        @return: The first relevant line
+        @rtype: str
+        """
         try:
             with open(os.path.join(root, file)) as f:
                 return_line = ""
@@ -155,6 +187,13 @@ class DatabaseSetup:
             print(f'An error occurred while inserting users:{e}')
 
     def format_label_line(self, label: str):
+        """
+        Formats the label line in a file to the values we need to insert into the database.
+        @param label: The label line
+        @type label: str
+        @return: start_time, end_time and transportation_mode
+        @rtype: str
+        """
         values = label.split()
         start_time = "".join((values[0], " ", values[1]))
         end_time = "".join((values[2], " ", values[3]))
@@ -169,6 +208,13 @@ class DatabaseSetup:
         return time
 
     def format_trajectory_line(self, line: str):
+        """
+        Formats the trajectory line in a file
+        @param line: The trajectory line
+        @type line: str
+        @return: latitude, longitude, altitude, days_passed and start_time
+        @rtype: str
+        """
         values = line.split(",")
         latitude = values[0]
         longitude = values[1]
@@ -178,6 +224,15 @@ class DatabaseSetup:
         return latitude, longitude, altitude, days_passed, start_time
 
     def create_activity(self, root, file):
+        """
+        Creaetes a new activity
+        @param root: The path of the file
+        @type root: str
+        @param file: The name of the file
+        @type file:str
+        @return: Activity - a new activity
+        @rtype: Activity
+        """
         user_id = os.path.basename(os.path.dirname(root))
         first_line = self.get_first_line(root, file)
         last_line = self.get_last_line(root, file)
@@ -187,6 +242,11 @@ class DatabaseSetup:
         return Activity(activity_id, user_id, start_time, end_time, None)
 
     def create_label_activities(self):
+        """
+        Creates a new label activity.
+        @return: label_activity_list - a list with all label activities
+        @rtype: list
+        """
         label_activity_list = []
         for root, dirs, files in os.walk('dataset/dataset/Data', topdown=True):
             for file in files:
@@ -203,6 +263,11 @@ class DatabaseSetup:
         return label_activity_list
 
     def traverse_dataset(self):
+        """
+        Traverses the dataset and inserts activities and track_points
+        @return: None
+        @rtype: None
+        """
         label_activities = self.create_label_activities()
         self.batch_insert_activities(label_activities)
         for root, dirs, files in os.walk('dataset/dataset/Data', topdown=True):
@@ -211,7 +276,7 @@ class DatabaseSetup:
                     path = os.path.join(root, file)  # The current path
                     if self.is_plt_file(self.get_extension(path)) and self.get_nr_of_lines(path) <= 2500:
                         activity = self.create_activity(root, file)
-                        self.insert_activities(activity)  # Inserts the activity into the database
+                        self.insert_activity(activity)  # Inserts the activity into the database
                         track_point_list = []  # A list to batch insert the trajectories
                         with open(os.path.join(root, file)) as f:  # opens the current file
                             for read in range(6):
@@ -224,13 +289,27 @@ class DatabaseSetup:
                                 (activity.id, latitude, longitude, altitude, days_passed, start_time))
                         self.batch_insert_track_points(track_point_list)  # Batch insert the track points in this file
 
-    def batch_insert_activities(self, label_activity_list):
+    def batch_insert_activities(self, label_activity_list: list):
+        """
+        Batch inserts activities into the database
+        @param label_activity_list: The list with all label activities
+        @type label_activity_list: list
+        @return: None
+        @rtype: None
+        """
         activity_query = """INSERT INTO test_db.ACTIVITY (id, user_id, transportation_mode, start_date_time, end_date_time) 
                                 VALUES (%s, %s, %s, %s, %s)"""
         self.cursor.executemany(activity_query, label_activity_list)
         self.db_connection.commit()
 
-    def insert_activities(self, activity: Activity):
+    def insert_activity(self, activity: Activity):
+        """
+        Inserts a single activity
+        @param activity: The activity that should be inserted into the database.
+        @type activity: Activity
+        @return: None
+        @rtype: None
+        """
         query = """INSERT INTO test_db.ACTIVITY (id, user_id, start_date_time, end_date_time) 
                                 VALUES ('%s', '%s','%s','%s')"""
         self.cursor.execute((query % (
@@ -238,6 +317,13 @@ class DatabaseSetup:
         self.db_connection.commit()
 
     def batch_insert_track_points(self, track_points: list):
+        """
+        Batch insert users into the database
+        @param track_points:
+        @type track_points:
+        @return:
+        @rtype:
+        """
         trajectory_query = """INSERT INTO test_db.TRACK_POINT (activity_id, lat, lon, altitude, data_days, data_time) 
                                   VALUES (%s, %s, %s, %s, %s, %s)"""
         self.cursor.executemany(trajectory_query, track_points)
