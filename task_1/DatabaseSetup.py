@@ -1,12 +1,10 @@
+import os
 import uuid
 
-from DbConnector import DbConnector
 from tabulate import tabulate
-import os
 
-from task_1.User import User
+from DbConnector import DbConnector
 from task_1.Activity import Activity
-from task_1.TrackPoint import TrackPoint
 
 """
 Handles the database setup.
@@ -60,9 +58,6 @@ class DatabaseSetup:
         self.db_connection.commit()
 
     def print_users(self):
-        """
-        Todo change to one function " print_table(table_name)?
-        """
         query = "SELECT * FROM test_db.USER"
         self.cursor.execute(query)
         rows = self.cursor.fetchall()
@@ -70,9 +65,6 @@ class DatabaseSetup:
         print(f"Data from table USERS tabulated:\n{tabulate(rows, headers=self.cursor.column_names)}")
 
     def print_activity(self):
-        """
-        Todo change to one function " print_table(table_name)?
-        """
         query = "SELECT * FROM test_db.ACTIVITY"
         self.cursor.execute(query)
         rows = self.cursor.fetchall()
@@ -116,7 +108,6 @@ class DatabaseSetup:
         return num_lines
 
     def get_user_label(self):
-        """todo change the way to fetch label ids"""
         label_path = "dataset/dataset/labeled_ids.txt"
         # This approach is not scalable, since it loads the entire dataset into memory.
         labels = open(label_path, 'r').read().splitlines()
@@ -128,35 +119,40 @@ class DatabaseSetup:
         return user_ids
 
     def insert_users(self):
-        """
-        Todo add a try catch
-        """
         user_labels = self.get_user_label()
         user_ids = self.get_user_ids()
+        user_list = []
 
-        for user in user_ids:
-            has_label = False
-            if user in user_labels:
-                has_label = True
-            query = "INSERT INTO test_db.USER (id, has_labels) VALUES ('%s', %s)"
-            # todo change to execute many? Test the speed difference?
-            self.cursor.execute(query % (user, has_label))
-            print(f'User:{user} & has_label: {has_label} ')
-        self.db_connection.commit()
+        try:
+            for user in user_ids:
+                has_label = False
+                if user in user_labels:
+                    has_label = True
+                query = "INSERT INTO test_db.USER (id, has_labels) VALUES ('%s', %s)"
+                self.cursor.execute(query % (user, has_label))
+            self.db_connection.commit()
+        except Exception as e:
+            print(f'An error occurred while inserting users:{e}')
 
     def get_last_line(self, root: str, file: str):
-        with open(os.path.join(root, file), "rb") as f:
-            f.seek(-2, os.SEEK_END)
-            while f.read(1) != b'\n':
-                f.seek(-2, os.SEEK_CUR)
-            return f.readline().decode()
+        try:
+            with open(os.path.join(root, file), "rb") as f:
+                f.seek(-2, os.SEEK_END)
+                while f.read(1) != b'\n':
+                    f.seek(-2, os.SEEK_CUR)
+                return f.readline().decode()
+        except Exception as e:
+            print(f'An error occurred while inserting users:{e}')
 
     def get_first_line(self, root: str, file: str):
-        with open(os.path.join(root, file)) as f:
-            return_line = ""
-            for read in range(7):  # todo find another way to remove the first 6 lines
-                return_line = f.readline()  # removes the first lines containing descriptions.
-            return return_line
+        try:
+            with open(os.path.join(root, file)) as f:
+                return_line = ""
+                for read in range(7):  # todo find another way to get the first track points in the file
+                    return_line = f.readline()  # removes the first lines containing descriptions.
+                return return_line
+        except Exception as e:
+            print(f'An error occurred while inserting users:{e}')
 
     def format_label_line(self, label: str):
         values = label.split()
@@ -172,76 +168,78 @@ class DatabaseSetup:
         time = "".join((values[5], " ", values[6]))
         return time
 
-    def insert_labels(self):
+    def format_trajectory_line(self, line: str):
+        values = line.split(",")
+        latitude = values[0]
+        longitude = values[1]
+        altitude = values[3]
+        days_passed = values[4]
+        start_time = "".join((values[5].replace('-', '/'), " ", values[6]))
+        return latitude, longitude, altitude, days_passed, start_time
+
+    def create_activity(self, root, file):
+        user_id = os.path.basename(os.path.dirname(root))
+        first_line = self.get_first_line(root, file)
+        last_line = self.get_last_line(root, file)
+        start_time = self.format_trajectory_time(first_line)
+        end_time = self.format_trajectory_time(last_line)
+        activity_id = str(uuid.uuid4())
+        return Activity(activity_id, user_id, start_time, end_time, None)
+
+    def create_label_activities(self):
+        label_activity_list = []
         for root, dirs, files in os.walk('dataset/dataset/Data', topdown=True):
             for file in files:
                 if file == "labels.txt":
                     with open(os.path.join(root, file)) as f:
-                        f.readline()  # removes the first lines containing descriptions.
+                        f.readline()  # removes the first line containing descriptions.
                         user_id = os.path.basename(os.path.basename(root))
                         for line in f:
                             start_time, end_time, transportation_mode = self.format_label_line(line)
                             activity_id = str(uuid.uuid4())
-                            activity = Activity(activity_id, user_id, transportation_mode, start_time, end_time)
+                            # activity = Activity(activity_id, user_id, transportation_mode, start_time, end_time)
+                            label_activity_list.append(
+                                (activity_id, user_id, transportation_mode, start_time, end_time))
+        return label_activity_list
 
-                            self.activity_list.append((activity_id, user_id, transportation_mode, start_time, end_time))
-
-    def insert_activity(self):
-        """
-        Todo add a try catch
-        Todo separate trackpoint- and activity methods
-        """
-
-        self.insert_labels()
-        self.batch_insert_activities()
+    def traverse_dataset(self):
+        label_activities = self.create_label_activities()
+        self.batch_insert_activities(label_activities)
         for root, dirs, files in os.walk('dataset/dataset/Data', topdown=True):
             if len(dirs) == 0 and len(files) > 0:
                 for file in files:
                     path = os.path.join(root, file)  # The current path
-                    extension = self.get_extension(path)  # The extension of the path.
-                    nr_of_lines = self.get_nr_of_lines(path)  # The number of lines in the file.
-                    if self.is_plt_file(extension) and nr_of_lines <= 2500:
-                        user_id = os.path.basename(os.path.dirname(root))
-                        first_line = self.get_first_line(root, file)
-                        last_line = self.get_last_line(root, file)
-                        start_time = self.format_trajectory_time(first_line)
-                        end_time = self.format_trajectory_time(last_line)
-                        activity_id = str(uuid.uuid4())
-                        activity = Activity(activity_id, user_id, start_time, end_time, None)
-                        self.insert_activities_2(activity)
-                        # self.activity_list.append((activity_id, user_id, None, start_time, end_time))
-                        track_point_list = []
-                        with open(os.path.join(root, file)) as f:
+                    if self.is_plt_file(self.get_extension(path)) and self.get_nr_of_lines(path) <= 2500:
+                        activity = self.create_activity(root, file)
+                        self.insert_activities(activity)  # Inserts the activity into the database
+                        track_point_list = []  # A list to batch insert the trajectories
+                        with open(os.path.join(root, file)) as f:  # opens the current file
                             for read in range(6):
                                 f.readline()
 
                             for line in f:
-                                values = line.split(",")
-                                latitude = values[0]
-                                longitude = values[1]
-                                altitude = values[3]
-                                days_passed = values[4]
-                                start_time = "".join((values[5].replace('-', '/'), " ", values[6]))
-                                track_point_list.append(
-                                    (activity_id, latitude, longitude, altitude, days_passed, start_time))
-                        self.batch_insert_track_points(track_point_list)
+                                latitude, longitude, altitude, days_passed, start_time = \
+                                    self.format_trajectory_line(line)
+                            track_point_list.append(
+                                (activity.id, latitude, longitude, altitude, days_passed, start_time))
+                        self.batch_insert_track_points(track_point_list)  # Batch insert the track points in this file
 
-    def batch_insert_activities(self):
+    def batch_insert_activities(self, label_activity_list):
         activity_query = """INSERT INTO test_db.ACTIVITY (id, user_id, transportation_mode, start_date_time, end_date_time) 
-                            VALUES (%s, %s, %s, %s, %s)"""
-        self.cursor.executemany(activity_query, self.activity_list)
+                                VALUES (%s, %s, %s, %s, %s)"""
+        self.cursor.executemany(activity_query, label_activity_list)
         self.db_connection.commit()
 
-    def insert_activities_2(self, activity: Activity):
+    def insert_activities(self, activity: Activity):
         query = """INSERT INTO test_db.ACTIVITY (id, user_id, start_date_time, end_date_time) 
-                            VALUES ('%s', '%s','%s','%s')"""
+                                VALUES ('%s', '%s','%s','%s')"""
         self.cursor.execute((query % (
             activity.id, activity.user_id, activity.start_date_time, activity.end_date_time)))
         self.db_connection.commit()
 
     def batch_insert_track_points(self, track_points: list):
         trajectory_query = """INSERT INTO test_db.TRACK_POINT (activity_id, lat, lon, altitude, data_days, data_time) 
-                              VALUES (%s, %s, %s, %s, %s, %s)"""
+                                  VALUES (%s, %s, %s, %s, %s, %s)"""
         self.cursor.executemany(trajectory_query, track_points)
 
         self.db_connection.commit()
