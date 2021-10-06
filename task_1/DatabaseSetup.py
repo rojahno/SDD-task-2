@@ -321,8 +321,8 @@ class DatabaseSetup:
         Batch insert users into the database
         @param track_points:
         @type track_points:
-        @return:
-        @rtype:
+        @return: None
+        @rtype: None
         """
         trajectory_query = """INSERT INTO test_db.TRACK_POINT (activity_id, lat, lon, altitude, data_days, data_time) 
                                   VALUES (%s, %s, %s, %s, %s, %s)"""
