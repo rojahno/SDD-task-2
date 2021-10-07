@@ -34,6 +34,7 @@ class DatabaseSetup:
         #       }
         #   ...
         # }
+
     def create_user_table(self):
         query = """CREATE TABLE IF NOT EXISTS USER (
                    id VARCHAR(50) NOT NULL PRIMARY KEY,
@@ -302,8 +303,8 @@ class DatabaseSetup:
                             for line in f:
                                 latitude, longitude, altitude, days_passed, start_time = \
                                     self.format_trajectory_line(line)
-                            track_point_list.append(
-                                (activity.id, latitude, longitude, altitude, days_passed, start_time))
+                                track_point_list.append(
+                                    (activity.id, latitude, longitude, altitude, days_passed, start_time))
                         self.batch_insert_track_points(track_point_list)  # Batch insert the track points in this file
 
     def batch_insert_activities(self, label_activity_list: list):
@@ -330,20 +331,19 @@ class DatabaseSetup:
         @return: None
         @rtype: None
         """
-        try:
-            if activity.transportation_mode is None:
-                query = """INSERT INTO test_db.ACTIVITY (id, user_id, start_date_time, end_date_time) 
+        if activity.transportation_mode is None:
+            query = """INSERT INTO test_db.ACTIVITY (id, user_id, start_date_time, end_date_time) 
                                     VALUES ('%s', '%s','%s','%s')"""
-                self.cursor.execute((query % (
-                    activity.id, activity.user_id, activity.start_date_time, activity.end_date_time)))
-            else:
-                query = """INSERT INTO test_db.ACTIVITY (id, user_id, transportation_mode, start_date_time, end_date_time) 
+            self.cursor.execute(query % (
+                activity.id, activity.user_id, activity.start_date_time, activity.end_date_time))
+        else:
+            query = """INSERT INTO test_db.ACTIVITY (id, user_id, transportation_mode, start_date_time, end_date_time) 
                                                     VALUES ('%s', '%s','%s', '%s', '%s')"""
-                self.cursor.execute((query % (
-                    activity.id, activity.user_id, activity.start_date_time, activity.end_date_time, activity.transportation_mode)))
-            self.db_connection.commit()
-        except Exception as e:
-            print(f'An error occurred while inserting Activity:{e}')
+            self.cursor.execute(query % (
+                activity.id, activity.user_id, activity.start_date_time, activity.end_date_time,
+                activity.transportation_mode))
+        self.db_connection.commit()
+
 
     def batch_insert_track_points(self, track_points: list):
         """
@@ -355,42 +355,43 @@ class DatabaseSetup:
         """
         try:
             trajectory_query = """INSERT INTO test_db.TRACK_POINT (activity_id, lat, lon, altitude, data_days, data_time) 
-                                  VALUES (%s, %s, %s, %s, %s, %s)"""
+                                      VALUES (%s, %s, %s, %s, %s, %s)"""
             self.cursor.executemany(trajectory_query, track_points)
             self.db_connection.commit()
         except Exception as e:
             print(f'An error occurred while batch inserting track points:{e}')
 
-    # THE FOLLOWING METHOD MIGHT BE UNNECESSARY (see insert_activity)
-    '''def alter_activites_insert_transp_mode(self):
-        # iterate over (user-id, dict of dates/labels)
-        for user_id, label in self.labels_dict.items():
-            # get all the date pairs from the current user in iteration
-            get_activity_dates_query = """SELECT 
-                                            test_db.ACTIVITY.start_date_time
-                                            test_db.ACTIVITY.end_date_time
-                                          FROM test_db.ACTIVITY
-                                          WHERE 
-                                            test_db.ACTIVITY.user_id = %s"""
-            self.cursor.execute(get_activity_dates_query % user_id)
-            # list of tuples??
-            activity_start_end_dates = self.cursor.fetchall()
-            # iterate over date, transportation_label in current users dict
-            for label_start_end, transp_mode in label.items():
-                # if the user has the (exact) label dates in their activity dates
-                if label_start_end in activity_start_end_dates:
-                    # update the transportation mode for that activity
-                    alter_transp_mode_query = """UPDATE test_db.ACTIVITY
-                                                    SET test_db.transportation_mode = %s
-                                                 WHERE
-                                                    test_db.ACTIVITY.user_id = %s
-                                                 AND 
-                                                    test_db.ACTIVITY.start_date_time = %s
-                                                 AND 
-                                                    test_db.ACTIVITY.end_date_time = %s
-                                                    """
-                    self.cursor.execute(alter_transp_mode_query % (transp_mode, user_id, label_start_end[0], label_start_end[1]))
-        try:
-            pass
-        except Exception as e:
-            print(f'An error occured while altering activities to insert transportation modes\nfrom labels:{e}')'''
+
+# THE FOLLOWING METHOD MIGHT BE UNNECESSARY (see insert_activity)
+'''def alter_activites_insert_transp_mode(self):
+    # iterate over (user-id, dict of dates/labels)
+    for user_id, label in self.labels_dict.items():
+        # get all the date pairs from the current user in iteration
+        get_activity_dates_query = """SELECT 
+                                        test_db.ACTIVITY.start_date_time
+                                        test_db.ACTIVITY.end_date_time
+                                      FROM test_db.ACTIVITY
+                                      WHERE 
+                                        test_db.ACTIVITY.user_id = %s"""
+        self.cursor.execute(get_activity_dates_query % user_id)
+        # list of tuples??
+        activity_start_end_dates = self.cursor.fetchall()
+        # iterate over date, transportation_label in current users dict
+        for label_start_end, transp_mode in label.items():
+            # if the user has the (exact) label dates in their activity dates
+            if label_start_end in activity_start_end_dates:
+                # update the transportation mode for that activity
+                alter_transp_mode_query = """UPDATE test_db.ACTIVITY
+                                                SET test_db.transportation_mode = %s
+                                             WHERE
+                                                test_db.ACTIVITY.user_id = %s
+                                             AND 
+                                                test_db.ACTIVITY.start_date_time = %s
+                                             AND 
+                                                test_db.ACTIVITY.end_date_time = %s
+                                                """
+                self.cursor.execute(alter_transp_mode_query % (transp_mode, user_id, label_start_end[0], label_start_end[1]))
+    try:
+        pass
+    except Exception as e:
+        print(f'An error occured while altering activities to insert transportation modes\nfrom labels:{e}')'''

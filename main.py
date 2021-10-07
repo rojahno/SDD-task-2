@@ -3,7 +3,7 @@ from task_1.DatabaseSetup import DatabaseSetup
 
 
 def task_1():
-    #try:
+    # try:
     # Creates a connection with the database
     connector = DbConnector()
     # Creates a database setup object
@@ -16,7 +16,7 @@ def task_1():
     setup.insert_users()
     # Inserts activities and track points
     setup.traverse_dataset()
-    #except Exception as e:
+    # except Exception as e:
     #    print(f'An error occurred in task_1:{e}')
 
 
