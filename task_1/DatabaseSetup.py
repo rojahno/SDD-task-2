@@ -1,4 +1,5 @@
 import os
+import sys
 import uuid
 
 from tabulate import tabulate
@@ -21,19 +22,6 @@ class DatabaseSetup:
         self.db_connection = self.connection.db_connection
         self.cursor = self.connection.cursor
         self.labels_dict = {}
-        # dict will have the form:
-        # {
-        #   82: {
-        #       ('2009-06-25 04:16:31', '2009-06-25 16:19:02'): "walk",
-        #       ('2009-06-25 04:16:31', '2009-06-25 16:19:02'): "taxi"
-        #       },
-        #   83: {
-        #       (date1, date2): "bus",
-        #       (date3, date4): "run",
-        #        ...
-        #       }
-        #   ...
-        # }
 
     def create_user_table(self):
         query = """CREATE TABLE IF NOT EXISTS USER (
@@ -160,7 +148,7 @@ class DatabaseSetup:
                 self.cursor.execute(query % (user, has_label))
             self.db_connection.commit()
         except Exception as e:
-            print(f'An error occurred while inserting users:{e}')
+            print(f'An error occurred while inserting users:{sys.exc_info()[2]}')
 
     def get_last_line(self, root: str, file: str):
         """
@@ -176,7 +164,7 @@ class DatabaseSetup:
             with open(path, "r") as f1:
                 return f1.readlines()[-1]
         except Exception as e:
-            print(f'An error occurred while retrieving the last line in the file:{e}')
+            print(f'An error occurred while retrieving the last line in the file:{sys.exc_info()[2]}')
 
     def get_first_line(self, root: str, file: str):
         """
@@ -195,7 +183,7 @@ class DatabaseSetup:
                     return_line = f.readline()  # removes the first lines containing descriptions.
                 return return_line
         except Exception as e:
-            print(f'An error occurred while retrieving the first line in the file:{e}')
+            print(f'An error occurred while retrieving the first line in the file:{sys.exc_info()[2]}')
 
     def format_label_line(self, label: str):
         """
@@ -246,14 +234,15 @@ class DatabaseSetup:
         """
         labeled_users = self.get_user_label()
         user_id = os.path.basename(os.path.dirname(root))
-        first_line = self.get_first_line(root, file)
-        last_line = self.get_last_line(root, file)
+        first_line = self.get_first_line(root, file).rstrip()
+        last_line = self.get_last_line(root, file).rstrip()
         start_time = self.format_trajectory_time(first_line)
         end_time = self.format_trajectory_time(last_line)
         activity_id = str(uuid.uuid4())
+        date_key = tuple((start_time, end_time))
         if user_id in labeled_users:
-            if (start_time, end_time) in self.labels_dict[user_id]:
-                transportation_mode = self.labels_dict[user_id][(start_time, end_time)]
+            if date_key in self.labels_dict[user_id]:
+                transportation_mode = self.labels_dict[user_id][date_key]
                 return Activity(activity_id, user_id, start_time, end_time, transportation_mode)
         return Activity(activity_id, user_id, start_time, end_time, None)
 
@@ -277,7 +266,8 @@ class DatabaseSetup:
                             start_time, end_time, transportation_mode = self.format_label_line(line)
                             # Assuming label dates (together) are unique => add label-dates-tuple as key, with
                             # transportation mode as value
-                            self.labels_dict[user_id][(start_time, end_time)] = transportation_mode
+                            date_key = tuple((start_time, end_time))
+                            self.labels_dict[user_id][date_key] = transportation_mode
 
     def traverse_dataset(self):
         """
@@ -321,7 +311,7 @@ class DatabaseSetup:
             self.cursor.executemany(activity_query, label_activity_list)
             self.db_connection.commit()
         except Exception as e:
-            print(f'An error occurred while batch inserting activities:{e}')
+            print(f'An error occurred while batch inserting activities:{sys.exc_info()[2]}')
 
     def insert_activity(self, activity: Activity):
         """
@@ -331,19 +321,21 @@ class DatabaseSetup:
         @return: None
         @rtype: None
         """
-        if activity.transportation_mode is None:
-            query = """INSERT INTO test_db.ACTIVITY (id, user_id, start_date_time, end_date_time) 
+        try:
+            if activity.transportation_mode is None:
+                query = """INSERT INTO test_db.ACTIVITY (id, user_id, start_date_time, end_date_time) 
                                     VALUES ('%s', '%s','%s','%s')"""
-            self.cursor.execute(query % (
-                activity.id, activity.user_id, activity.start_date_time, activity.end_date_time))
-        else:
-            query = """INSERT INTO test_db.ACTIVITY (id, user_id, transportation_mode, start_date_time, end_date_time) 
+                self.cursor.execute(query % (
+                    activity.id, activity.user_id, activity.start_date_time, activity.end_date_time))
+            else:
+                query = """INSERT INTO test_db.ACTIVITY (id, user_id, transportation_mode, start_date_time, end_date_time) 
                                                     VALUES ('%s', '%s','%s', '%s', '%s')"""
-            self.cursor.execute(query % (
-                activity.id, activity.user_id, activity.start_date_time, activity.end_date_time,
-                activity.transportation_mode))
-        self.db_connection.commit()
-
+                self.cursor.execute(query % (
+                    activity.id, activity.user_id, activity.start_date_time, activity.end_date_time,
+                    activity.transportation_mode))
+            self.db_connection.commit()
+        except Exception as e:
+            print(f'An error occurred while batch inserting track points:{sys.exc_info()[2]}')
 
     def batch_insert_track_points(self, track_points: list):
         """
@@ -359,39 +351,4 @@ class DatabaseSetup:
             self.cursor.executemany(trajectory_query, track_points)
             self.db_connection.commit()
         except Exception as e:
-            print(f'An error occurred while batch inserting track points:{e}')
-
-
-# THE FOLLOWING METHOD MIGHT BE UNNECESSARY (see insert_activity)
-'''def alter_activites_insert_transp_mode(self):
-    # iterate over (user-id, dict of dates/labels)
-    for user_id, label in self.labels_dict.items():
-        # get all the date pairs from the current user in iteration
-        get_activity_dates_query = """SELECT 
-                                        test_db.ACTIVITY.start_date_time
-                                        test_db.ACTIVITY.end_date_time
-                                      FROM test_db.ACTIVITY
-                                      WHERE 
-                                        test_db.ACTIVITY.user_id = %s"""
-        self.cursor.execute(get_activity_dates_query % user_id)
-        # list of tuples??
-        activity_start_end_dates = self.cursor.fetchall()
-        # iterate over date, transportation_label in current users dict
-        for label_start_end, transp_mode in label.items():
-            # if the user has the (exact) label dates in their activity dates
-            if label_start_end in activity_start_end_dates:
-                # update the transportation mode for that activity
-                alter_transp_mode_query = """UPDATE test_db.ACTIVITY
-                                                SET test_db.transportation_mode = %s
-                                             WHERE
-                                                test_db.ACTIVITY.user_id = %s
-                                             AND 
-                                                test_db.ACTIVITY.start_date_time = %s
-                                             AND 
-                                                test_db.ACTIVITY.end_date_time = %s
-                                                """
-                self.cursor.execute(alter_transp_mode_query % (transp_mode, user_id, label_start_end[0], label_start_end[1]))
-    try:
-        pass
-    except Exception as e:
-        print(f'An error occured while altering activities to insert transportation modes\nfrom labels:{e}')'''
+            print(f'An error occurred while batch inserting track points:{sys.exc_info()[2]}')
