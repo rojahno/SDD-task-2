@@ -20,7 +20,20 @@ class DatabaseSetup:
         self.connection = connection
         self.db_connection = self.connection.db_connection
         self.cursor = self.connection.cursor
-
+        self.labels_dict = {}
+        # dict will have the form:
+        # {
+        #   82: {
+        #       ('2009-06-25 04:16:31', '2009-06-25 16:19:02'): "walk",
+        #       ('2009-06-25 04:16:31', '2009-06-25 16:19:02'): "taxi"
+        #       },
+        #   83: {
+        #       (date1, date2): "bus",
+        #       (date3, date4): "run",
+        #        ...
+        #       }
+        #   ...
+        # }
     def create_user_table(self):
         query = """CREATE TABLE IF NOT EXISTS USER (
                    id VARCHAR(50) NOT NULL PRIMARY KEY,
@@ -236,7 +249,11 @@ class DatabaseSetup:
         start_time = self.format_trajectory_time(first_line)
         end_time = self.format_trajectory_time(last_line)
         activity_id = str(uuid.uuid4())
-        return Activity(activity_id, user_id, start_time, end_time, None)
+        if (start_time, end_time) in self.labels_dict[user_id]:
+            transportation_mode = self.labels_dict[user_id][(start_time, end_time)]
+            return Activity(activity_id, user_id, start_time, end_time, transportation_mode)
+        else:
+            return Activity(activity_id, user_id, start_time, end_time, None)
 
     def create_label_activities(self):
         """
@@ -251,12 +268,14 @@ class DatabaseSetup:
                     with open(os.path.join(root, file)) as f:
                         f.readline()  # removes the first line containing descriptions.
                         user_id = os.path.basename(os.path.basename(root))
+                        # if user-id (e.g. 082) isn't a key in label-dict, add it empty dict as value
+                        if user_id not in self.labels_dict:
+                            self.labels_dict[user_id] = {}
                         for line in f:
                             start_time, end_time, transportation_mode = self.format_label_line(line)
-                            activity_id = str(uuid.uuid4())
-                            label_activity_list.append(
-                                (activity_id, user_id, transportation_mode, start_time, end_time))
-        return label_activity_list
+                            # Assuming label dates (together) are unique => add label-dates-tuple as key, with
+                            # transportation mode as value
+                            self.labels_dict[user_id][(start_time, end_time)] = transportation_mode
 
     def traverse_dataset(self):
         """
@@ -264,8 +283,9 @@ class DatabaseSetup:
         @return: None
         @rtype: None
         """
-        label_activities = self.create_label_activities()
-        self.batch_insert_activities(label_activities)
+
+        # populate label_dict
+        self.create_label_activities()
         for root, dirs, files in os.walk('dataset/dataset/Data', topdown=True):
             if len(dirs) == 0 and len(files) > 0:
                 for file in files:
@@ -333,3 +353,37 @@ class DatabaseSetup:
             self.db_connection.commit()
         except Exception as e:
             print(f'An error occurred while batch inserting track points:{e}')
+
+    # THE FOLLOWING METHOD MIGHT BE UNNECESSARY (see insert_activity)
+    '''def alter_activites_insert_transp_mode(self):
+        # iterate over (user-id, dict of dates/labels)
+        for user_id, label in self.labels_dict.items():
+            # get all the date pairs from the current user in iteration
+            get_activity_dates_query = """SELECT 
+                                            test_db.ACTIVITY.start_date_time
+                                            test_db.ACTIVITY.end_date_time
+                                          FROM test_db.ACTIVITY
+                                          WHERE 
+                                            test_db.ACTIVITY.user_id = %s"""
+            self.cursor.execute(get_activity_dates_query % user_id)
+            # list of tuples??
+            activity_start_end_dates = self.cursor.fetchall()
+            # iterate over date, transportation_label in current users dict
+            for label_start_end, transp_mode in label.items():
+                # if the user has the (exact) label dates in their activity dates
+                if label_start_end in activity_start_end_dates:
+                    # update the transportation mode for that activity
+                    alter_transp_mode_query = """UPDATE test_db.ACTIVITY
+                                                    SET test_db.transportation_mode = %s
+                                                 WHERE
+                                                    test_db.ACTIVITY.user_id = %s
+                                                 AND 
+                                                    test_db.ACTIVITY.start_date_time = %s
+                                                 AND 
+                                                    test_db.ACTIVITY.end_date_time = %s
+                                                    """
+                    self.cursor.execute(alter_transp_mode_query % (transp_mode, user_id, label_start_end[0], label_start_end[1]))
+        try:
+            pass
+        except Exception as e:
+            print(f'An error occured while altering activities to insert transportation modes\nfrom labels:{e}')'''
