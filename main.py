@@ -10,11 +10,11 @@ def task_1():
     # Creates a database setup object
     setup = DatabaseSetup(connector)
     # Drops the table if it is already created
-    # setup.drop_tables()
+    setup.drop_tables()
     # Creates the tables if they don't already exist
     setup.create_tables()
     # Insert user.
-    # setup.insert_users()
+    setup.insert_users()
     # Inserts activities and track points
     setup.traverse_dataset()
 
