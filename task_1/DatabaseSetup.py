@@ -323,7 +323,7 @@ class DatabaseSetup:
     def batch_insert_track_points(self, track_points: list):
         """
         Batch insert users into the database
-        @param track_points:
+        @param track_points: The track point list
         @type track_points:
         @return: None
         @rtype: None
@@ -332,4 +332,18 @@ class DatabaseSetup:
         trajectory_query = """INSERT INTO test_db.TRACK_POINT (activity_id, lat, lon, altitude, data_days, data_time) 
                                   VALUES (%s, %s, %s, %s, %s, %s)"""
         self.cursor.executemany(trajectory_query, track_points)
+        self.db_connection.commit()
+
+    def batch_insert_users(self, users: list):
+        """
+        Batch insert users into the database
+        @param users: The user list
+        @type list:
+        @return: None
+        @rtype: None
+        """
+
+        users_query = """INSERT INTO test_db.TRACK_POINT (id, has_label) 
+                                  VALUES (%s, %s)"""
+        self.cursor.executemany(users_query, users)
         self.db_connection.commit()
