@@ -235,7 +235,7 @@ class DatabaseSetup:
 
     def create_activity(self, root, file):
         """
-        Creaetes a new activity
+        Creates a new activity
         @param root: The path of the file
         @type root: str
         @param file: The name of the file
@@ -262,7 +262,6 @@ class DatabaseSetup:
         @return: label_activity_list - a list with all label activities
         @rtype: list
         """
-        label_activity_list = []
         for root, dirs, files in os.walk('dataset/dataset/Data', topdown=True):
             for file in files:
                 if file == "labels.txt":
@@ -332,7 +331,7 @@ class DatabaseSetup:
         @rtype: None
         """
         try:
-            if activity.transportation_mode == None:
+            if activity.transportation_mode is None:
                 query = """INSERT INTO test_db.ACTIVITY (id, user_id, start_date_time, end_date_time) 
                                     VALUES ('%s', '%s','%s','%s')"""
                 self.cursor.execute((query % (
