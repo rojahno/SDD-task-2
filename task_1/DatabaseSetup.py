@@ -243,17 +243,18 @@ class DatabaseSetup:
         @return: Activity - a new activity
         @rtype: Activity
         """
+        labeled_users = self.get_user_label()
         user_id = os.path.basename(os.path.dirname(root))
         first_line = self.get_first_line(root, file)
         last_line = self.get_last_line(root, file)
         start_time = self.format_trajectory_time(first_line)
         end_time = self.format_trajectory_time(last_line)
         activity_id = str(uuid.uuid4())
-        if (start_time, end_time) in self.labels_dict[user_id]:
-            transportation_mode = self.labels_dict[user_id][(start_time, end_time)]
-            return Activity(activity_id, user_id, start_time, end_time, transportation_mode)
-        else:
-            return Activity(activity_id, user_id, start_time, end_time, None)
+        if user_id in labeled_users:
+            if (start_time, end_time) in self.labels_dict[user_id]:
+                transportation_mode = self.labels_dict[user_id][(start_time, end_time)]
+                return Activity(activity_id, user_id, start_time, end_time, transportation_mode)
+        return Activity(activity_id, user_id, start_time, end_time, None)
 
     def create_label_activities(self):
         """
@@ -267,9 +268,10 @@ class DatabaseSetup:
                 if file == "labels.txt":
                     with open(os.path.join(root, file)) as f:
                         f.readline()  # removes the first line containing descriptions.
+                        labeled_users = self.get_user_label()
                         user_id = os.path.basename(os.path.basename(root))
                         # if user-id (e.g. 082) isn't a key in label-dict, add it empty dict as value
-                        if user_id not in self.labels_dict:
+                        if (user_id not in self.labels_dict) and (user_id in labeled_users):
                             self.labels_dict[user_id] = {}
                         for line in f:
                             start_time, end_time, transportation_mode = self.format_label_line(line)
@@ -330,10 +332,16 @@ class DatabaseSetup:
         @rtype: None
         """
         try:
-            query = """INSERT INTO test_db.ACTIVITY (id, user_id, start_date_time, end_date_time) 
-                                VALUES ('%s', '%s','%s','%s')"""
-            self.cursor.execute((query % (
-                activity.id, activity.user_id, activity.start_date_time, activity.end_date_time)))
+            if activity.transportation_mode == None:
+                query = """INSERT INTO test_db.ACTIVITY (id, user_id, start_date_time, end_date_time) 
+                                    VALUES ('%s', '%s','%s','%s')"""
+                self.cursor.execute((query % (
+                    activity.id, activity.user_id, activity.start_date_time, activity.end_date_time)))
+            else:
+                query = """INSERT INTO test_db.ACTIVITY (id, user_id, transportation_mode, start_date_time, end_date_time) 
+                                                    VALUES ('%s', '%s','%s', '%s', '%s')"""
+                self.cursor.execute((query % (
+                    activity.id, activity.user_id, activity.start_date_time, activity.end_date_time, activity.transportation_mode)))
             self.db_connection.commit()
         except Exception as e:
             print(f'An error occurred while inserting Activity:{e}')
