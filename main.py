@@ -58,23 +58,28 @@ def task_2():
     # query.select_year_with_most_activities()
 
     # The month with most activities
-    query.select_month_with_most_activities()
+    # query.select_month_with_most_activities()
 
     # User with the most activities bis year and month
-    query.select_user_with_most_activities_this_year()
+    # query.select_user_with_most_activities_this_year()
+
+    #  Total distance in 2008 by user 112
+    # query.tot_dist_in_2008_by_user_112()
 
     # Top 20 users ho have gained the most altitude
-    #query.select_top_20_users_with_most_gained()
+    # query.select_top_20_users_with_most_gained()
 
     # All users with invalid activities
-    #query.select_all_users_with_invalid_activities()
+    # query.select_all_users_with_invalid_activities()
+
+    # query.test()
 
 def task_3():
     print('task 3')
 
 
 def main():
-    task_2()
+    task_1()
 
 
 if __name__ == "__main__":

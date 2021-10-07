@@ -168,7 +168,6 @@ class Queries:
                     group by start_time_year
                     order by nr_of_activities desc 
                     LIMIT 1
-
                  """
 
         self.cursor.execute(query)
@@ -190,7 +189,6 @@ class Queries:
                     month(test_db.ACTIVITY.start_date_time) = 5
                 group by user_id
                 order by nr_of_activities desc
-                LIMIT 1
                 """
 
 
@@ -203,25 +201,21 @@ class Queries:
 
 
     def tot_dist_in_2008_by_user_112(self):
-        activity_ids_query = """SELECT test_db.ACTIVITY.id FROM test_db.ACTIVITY 
-                                    WHERE test_db.ACTIVITY.user_id= 112
-                                    AND  year(test_db.ACTIVITY.start_date_time) = 2008;"""
+        query = """select test_db.TRACK_POINT.lat, test_db.TRACK_POINT.lon 
+                        from test_db.TRACK_POINT join test_db.ACTIVITY on test_db.ACTIVITY.id=test_db.TRACK_POINT.id 
+                        where test_db.ACTIVITY.user_id='112' and 
+                                YEAR(test_db.TRACK_POINT.data_time)='2008' and 
+                                test_db.ACTIVITY.transportation_mode='walk'
+                        """
 
-        self.cursor.execute(activity_ids_query)
-        activity_ids = self.cursor.fetchall()
+        self.cursor.execute(query)
+        rows = self.cursor.fetchall()
 
-        distances = []
-        for act_id in activity_ids:
+        total_distance = 0
+        for i in range(1, len(rows)):
+            total_distance += haversine(rows[i - 1], rows[i])
 
-            lat_lon_query = """SELECT test_db.TRACK_POINT.lat as latitude, test_db.TRACK_POINT.lon as longitude
-                                            FROM test_db.TRACK_POINT
-                                            WHERE test_db.TRACK_POINT.activity_id = %s"""
-            self.cursor.execute(lat_lon_query % act_id)
-            lat_lons_for_activity = self.cursor.fetchall()
-            for i in range(0, len(lat_lons_for_activity) - 1):
-                distances.append(haversine(lat_lons_for_activity[i], lat_lons_for_activity[i + 1]))
-
-
+        print("Total walked distance for user 112 in 2008 in :", total_distance)
 
 
     # Nr 11
@@ -245,11 +239,12 @@ class Queries:
 
     # Nr. 12
     def select_all_users_with_invalid_activities(self):
-        query = """SELECT distinct test_db.ACTIVITY.user_id,
-                    count(test_db.ACTIVITY.user_id) as nr_of_activities
-                FROM test_db.ACTIVITY right join test_db.TRACK_POINT ON ACTIVITY.user_id = TRACK_POINT.date_day
+        query = """SELECT test_db.ACTIVITY.user_id,
+                    count(test_db.ACTIVITY.id) as nr_of_activities
+                FROM test_db.ACTIVITY join test_db.TRACK_POINT ON ACTIVITY.user_id = TRACK_POINT.data_time
+                WHERE TRACK_POINT.data_time <= SUBDATE(TRACK_POINT.data_time,INTERVAL 5 minute) 
                 group by user_id
-                order by nr_of_activities
+                order by nr_of_activities desc 
                 """
 
 
@@ -257,6 +252,25 @@ class Queries:
         rows = self.cursor.fetchall()
         # Using tabulate to show the table in a nice way
         print(
-            f"The top 20 user with the most altitude gained:"
+            f"All users with invalid activities:"
             f"\n {tabulate(rows, headers=self.cursor.column_names)}")
+
+
+    def test(self):
+        query = """select test_db.TRACK_POINT.lat, test_db.TRACK_POINT.lon 
+                from test_db.TRACK_POINT join test_db.ACTIVITY on test_db.ACTIVITY.id=test_db.TRACK_POINT.id 
+                where test_db.ACTIVITY.user_id='112' and 
+                        YEAR(test_db.TRACK_POINT.data_time)='2008' and 
+                        test_db.ACTIVITY.transportation_mode='walk'
+                """
+
+        self.cursor.execute(query)
+        rows = self.cursor.fetchall()
+
+        total_distance = 0
+        for i in range(1, len(rows)):
+            total_distance += haversine(rows[i - 1], rows[i])
+
+        print("Total walked distance for user 112 in 2008 in :", total_distance)
+
 
