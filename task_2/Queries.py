@@ -236,13 +236,13 @@ order by test_db.ACTIVITY.user_id
 
     # Nr 11
     def select_top_20_users_with_most_gained(self):
-        query = """SELECT distinct test_db.ACTIVITY.user_id, 
-                    (count(test_db.TRACK_POINT.altitude))/3 as nr_of_altitude_gained
-                FROM test_db.ACTIVITY right join test_db.TRACK_POINT ON ACTIVITY.user_id = TRACK_POINT.altitude
-                WHERE test_db.TRACK_POINT.altitude != -777
-                group by user_id
-                order by nr_of_altitude_gained desc
-                LIMIT 20
+        query = """SELECT distinct test_db.ACTIVITY.user_id,
+                greatest(test_db.TRACK_POINT.altitude - lag(test_db.TRACK_POINT.altitude) 
+                over (order by test_db.ACTIVITY.user_id), 0) as altitude_gain
+                FROM test_db.ACTIVITY, test_db.TRACK_POINT
+                WHERE test_db.TRACK_POINT.activity_id = test_db.ACTIVITY.id
+                order by altitude_gain desc
+                LIMIT 2
                 """
 
         self.cursor.execute(query)
