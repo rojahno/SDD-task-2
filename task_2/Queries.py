@@ -77,7 +77,7 @@ class Queries:
 
     # Nr 3
     def select_ten_max_nr_of_activities(self):
-        query = """SELECT user_id, my_count AS min_count
+        query = """SELECT user_id, my_count AS counted_activities
                FROM (SELECT test_db.ACTIVITY.user_id AS user_id, count(test_db.ACTIVITY.user_id) AS my_count
                FROM test_db.ACTIVITY, test_db.USER
                WHERE (test_db.ACTIVITY.user_id = test_db.USER.id)
@@ -178,8 +178,11 @@ order by test_db.ACTIVITY.user_id
     # Nr 9a
     def select_month_with_most_activities(self):
         # Remove limit 1 to see the whole list
-        query = """SELECT distinct month(test_db.ACTIVITY.start_date_time) as start_time_year, count(test_db.ACTIVITY.user_id) as nr_of_activities
+        query = """SELECT distinct month(test_db.ACTIVITY.start_date_time) as start_time_year, 
+                    count(test_db.ACTIVITY.user_id) as nr_of_activities
                     FROM test_db.ACTIVITY
+                    WHERE 
+                    year(test_db.ACTIVITY.start_date_time) = 2008
                     group by start_time_year
                     order by nr_of_activities desc 
                     LIMIT 1
@@ -201,7 +204,7 @@ order by test_db.ACTIVITY.user_id
                 WHERE 
                     year(test_db.ACTIVITY.start_date_time) = 2008
                  and 
-                    month(test_db.ACTIVITY.start_date_time) = 5
+                    month(test_db.ACTIVITY.start_date_time) = 11
                 group by user_id
                 order by nr_of_activities desc
                 """

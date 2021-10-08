@@ -48,7 +48,7 @@ def task_2():
     # query.select_reoccurring_activities()
 
     # Find users who have never taken a taxi
-    query.select_never_taxi_user()
+    # query.select_never_taxi_user()
 
     # Find all types of transportation modes and count how many distinct users that
     # have used the different transportation modes
@@ -67,7 +67,7 @@ def task_2():
     # query.tot_dist_in_2008_by_user_112()
 
     # Top 20 users ho have gained the most altitude
-    # query.select_top_20_users_with_most_gained()
+    query.select_top_20_users_with_most_gained()
 
     # All users with invalid activities
     # query.select_all_users_with_invalid_activities()
