@@ -22,7 +22,8 @@ class DatabaseSetup:
         self.connection = connection
         self.db_connection = self.connection.db_connection
         self.cursor = self.connection.cursor
-        self.activity_dict = {}
+        self.activity_list = []
+        self.trackpoint_list = []
 
     def create_user_table(self):
         query = """CREATE TABLE IF NOT EXISTS USER (
@@ -34,7 +35,7 @@ class DatabaseSetup:
 
     def create_activity_table(self):
         query = """CREATE TABLE IF NOT EXISTS ACTIVITY (
-                   id varchar(36) NOT NULL PRIMARY KEY,
+                   id varchar(128) NOT NULL PRIMARY KEY,
                    user_id VARCHAR(50) NOT NULL,
                    FOREIGN KEY (user_id) REFERENCES test_db.USER(id),
                    transportation_mode VARCHAR(30), 
@@ -47,7 +48,7 @@ class DatabaseSetup:
     def create_track_point_table(self):
         query = """CREATE TABLE IF NOT EXISTS TRACK_POINT (
                    id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
-                   activity_id varchar(36) NOT NULL,
+                   activity_id varchar(128) NOT NULL,
                    FOREIGN KEY (activity_id) REFERENCES test_db.ACTIVITY(id),
                    lat DOUBLE,
                    lon DOUBLE, 
@@ -180,21 +181,19 @@ class DatabaseSetup:
                         user_id = os.path.basename(os.path.basename(root))
                         for line in f:
                             start_time, end_time, transportation_mode = self.format_label_line(line)
-                            activity_id = uuid.uuid4()
-                            query = """INSERT INTO test_db.ACTIVITY (id, user_id, start_date_time, end_date_time, 
-                                          transportation_mode) 
-                                                      VALUES ('%s', '%s', '%s', '%s', '%s')"""
-                            # Todo test execute many
-                            self.cursor.execute(query % (activity_id, user_id, start_time, end_time, transportation_mode))
-        self.db_connection.commit()
+                            activity_id = str(uuid.uuid4())
+                            activity = Activity(activity_id, user_id, transportation_mode, start_time, end_time)
+
+                            self.activity_list.append((activity_id, user_id, transportation_mode, start_time, end_time))
 
     def insert_activity(self):
         """
         Todo add a try catch
+        Todo separate trackpoint- and activity methods
         """
-        track_points = []
-        activities = []
+
         self.insert_labels()
+        self.batch_insert_activities()
         for root, dirs, files in os.walk('dataset/dataset/Data', topdown=True):
             if len(dirs) == 0 and len(files) > 0:
                 for file in files:
@@ -207,35 +206,43 @@ class DatabaseSetup:
                         last_line = self.get_last_line(root, file)
                         start_time = self.format_trajectory_time(first_line)
                         end_time = self.format_trajectory_time(last_line)
-                        id = uuid.uuid4()
-                        query = """INSERT INTO test_db.ACTIVITY (id, user_id, start_date_time, end_date_time) 
-                                       VALUES ('%s', '%s', '%s', '%s')"""
-                        self.cursor.execute(query % (id, user_id, start_time, end_time))
+                        activity_id = str(uuid.uuid4())
+                        activity = Activity(activity_id, user_id, start_time, end_time, None)
+                        self.insert_activities_2(activity)
+                        # self.activity_list.append((activity_id, user_id, None, start_time, end_time))
+                        track_point_list = []
+                        with open(os.path.join(root, file)) as f:
+                            for read in range(6):
+                                f.readline()
 
-        # Todo test the commit position
+                            for line in f:
+                                values = line.split(",")
+                                latitude = values[0]
+                                longitude = values[1]
+                                altitude = values[3]
+                                days_passed = values[4]
+                                start_time = "".join((values[5].replace('-', '/'), " ", values[6]))
+                                track_point_list.append(
+                                    (activity_id, latitude, longitude, altitude, days_passed, start_time))
+                        self.batch_insert_track_points(track_point_list)
+
+    def batch_insert_activities(self):
+        activity_query = """INSERT INTO test_db.ACTIVITY (id, user_id, transportation_mode, start_date_time, end_date_time) 
+                            VALUES (%s, %s, %s, %s, %s)"""
+        self.cursor.executemany(activity_query, self.activity_list)
         self.db_connection.commit()
 
+    def insert_activities_2(self, activity: Activity):
+        query = """INSERT INTO test_db.ACTIVITY (id, user_id, transportation_mode, start_date_time, end_date_time) 
+                            VALUES ('%s', '%s','%s','%s','%s')"""
+        self.cursor.execute((query % (
+            activity.id, activity.user_id, activity.transportation_mode, activity.start_date_time,
+            activity.end_date_time)))
+        self.db_connection.commit()
 
-def insert_trajectory(self):
-    for root, dirs, files in os.walk('dataset/dataset/Data', topdown=True):
-        if len(dirs) == 0 and len(files) > 0:
-            for file in files:
-                path = os.path.join(root, file)  # The current path
-                extension = self.get_extension(path)  # The extension of the path.
-                nr_of_lines = self.get_nr_of_lines(path)  # The number of lines in the file.
+    def batch_insert_track_points(self, track_points: list):
+        trajectory_query = """INSERT INTO test_db.TRACK_POINT (activity_id, lat, lon, altitude, data_days, data_time) 
+                              VALUES (%s, %s, %s, %s, %s, %s)"""
+        self.cursor.executemany(trajectory_query, track_points)
 
-                if self.is_plt_file(extension) and nr_of_lines <= 2500:  # Reduces  data points from 24 mill, to 16k
-                    with open(os.path.join(root, file)) as f:
-                        for read in range(6):  # todo find another way to remove the first 6 lines
-                            test = f.readline()  # removes the first lines containing descriptions.
-                            print(test)
-                        for line in f:
-                            values = line.split(",")
-                            latitude = values[0]
-                            longitude = values[1]
-                            altitude = values[3]
-                            days_passed = values[4]
-                            start_time = "".join((values[5].replace('-', '/'), " ", values[6]))
-                            print(start_time)
-
-                # print(file)
+        self.db_connection.commit()
