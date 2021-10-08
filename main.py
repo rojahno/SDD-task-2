@@ -48,7 +48,7 @@ def task_2():
     # query.select_reoccurring_activities()
 
     # Find users who have never taken a taxi
-    # query.select_never_taxi_user()
+    query.select_never_taxi_user()
 
     # Find all types of transportation modes and count how many distinct users that
     # have used the different transportation modes
@@ -79,7 +79,7 @@ def task_3():
 
 
 def main():
-    task_1()
+    task_2()
 
 
 if __name__ == "__main__":
