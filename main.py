@@ -71,6 +71,7 @@ def task_2():
 
     # query.test()
 
+
 def task_3():
     print('task 3')
 

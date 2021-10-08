@@ -310,11 +310,9 @@ order by test_db.ACTIVITY.user_id
             if len(sum) > 0:
                 meters = sum[0] / 3.2808
                 gain_list.append(meters)
-                print(f'user: {user[0]} and meters: {meters}')
             else:
                 meters = "Unknown because of 2500 line limit"
                 gain_list.append(meters)
-                print(f'user{user[0]} and meters: {meters}')
 
         value_list = {'user': user_list,
                       'altitude gain': gain_list}
