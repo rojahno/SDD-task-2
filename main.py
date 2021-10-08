@@ -1,3 +1,5 @@
+import sys
+
 from DbConnector import DbConnector
 from task_1.DatabaseSetup import DatabaseSetup
 from task_2.Queries import Queries
@@ -8,19 +10,14 @@ def task_1():
     connector = DbConnector()
     # Creates a database setup object
     setup = DatabaseSetup(connector)
+    # Drops the table if it is already created
     setup.drop_tables()
     # Creates the tables if they don't already exist
     setup.create_tables()
-    # Shows the tables
-    setup.show_tables()
-    # prints the user
-    # setup.print_users()
     # Insert user.
     setup.insert_users()
-    setup.insert_activity()
-    # setup.print_activity()
-    # setup.batch_insert_activities()
-    # setup.batch_insert_track_points()
+    # Inserts activities and track points
+    setup.traverse_dataset()
 
 
 def task_2():
