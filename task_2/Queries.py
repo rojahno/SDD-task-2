@@ -1,6 +1,7 @@
 from tabulate import tabulate
 from haversine import haversine
 import DbConnector
+import pandas as pd
 
 
 class Queries:
@@ -124,6 +125,53 @@ class Queries:
             f"Repeated activities:"
             f"\n {tabulate(rows, headers=self.cursor.column_names)}")
 
+    # nr 6
+    def covid_tracking(self):
+        close_people_counter = 0
+        users_query = """SELECT test_db.USER.id FROM test_db.USER"""
+        self.cursor.execute(users_query)
+        user_ids = [i[0] for i in self.cursor.fetchall()]
+
+        for i in range(0, len(user_ids) - 1):
+            # Get all trackpoints for one user n
+            query = """SELECT 
+                            test_db.ACTIVITY.user_id, 
+                            test_db.TRACK_POINT.data_days, 
+                            test_db.TRACK_POINT.lat, 
+                            test_db.TRACK_POINT.lon
+                        FROM test_db.ACTIVITY
+                        JOIN test_db.TRACK_POINT
+                            ON test_db.ACTIVITY.id = test_db.TRACK_POINT.activity_id
+                            WHERE test_db.ACTIVITY.user_id = %s
+                        ORDER BY test_db.TRACK_POINT.lat, test_db.TRACK_POINT.lon;"""
+            self.cursor.execute(query % user_ids[i])
+            first_join_table = self.cursor.fetchall()
+
+            # Get trackpoints for all subsequent users (n+1)...m
+            for j in range(i + 1, len(user_ids) - 2):
+                query = """SELECT 
+                                test_db.ACTIVITY.user_id, 
+                                test_db.TRACK_POINT.data_days, 
+                                test_db.TRACK_POINT.lat, 
+                                test_db.TRACK_POINT.lon
+                            FROM test_db.ACTIVITY
+                            JOIN test_db.TRACK_POINT
+                                ON test_db.ACTIVITY.id = test_db.TRACK_POINT.activity_id
+                                WHERE test_db.ACTIVITY.user_id = %s
+                            ORDER BY test_db.TRACK_POINT.lat, test_db.TRACK_POINT.lon;"""
+                self.cursor.execute(query % user_ids[j])
+                second_join_table = self.cursor.fetchall()
+
+                # Check proximity between two current  users
+                for k in first_join_table:
+                    for l in second_join_table:
+                        seconds_diff = abs(k[1] - l[1]) * 24 * 3600
+                        distance_diff = haversine((k[2], k[3]), (l[2], l[3]), unit='m')
+                        # print(k[0], "-->", l[0], " sec: ", seconds_diff, "dist: ", distance_diff)
+                        if (seconds_diff <= 60) and (distance_diff <= 100):
+                            close_people_counter += 1
+        print(f"Number of people in close proximity of eachother : {close_people_counter}\n")
+
     # Nr 7
     def select_never_taxi_user(self):
         query = """SELECT distinct test_db.ACTIVITY.user_id
@@ -236,21 +284,45 @@ order by test_db.ACTIVITY.user_id
 
     # Nr 11
     def select_top_20_users_with_most_gained(self):
-        query = """SELECT distinct test_db.ACTIVITY.user_id,
-                greatest(test_db.TRACK_POINT.altitude - lag(test_db.TRACK_POINT.altitude) 
-                over (order by test_db.ACTIVITY.user_id), 0) as altitude_gain
-                FROM test_db.ACTIVITY, test_db.TRACK_POINT
-                WHERE test_db.TRACK_POINT.activity_id = test_db.ACTIVITY.id
-                order by altitude_gain desc
-                LIMIT 2
+        get_users_query = """select test_db.USER.id
+                    from test_db.USER
+                    order by test_db.USER.id
+        """
+        get_altitude_query = """SELECT
+                   greatest(test_db.TRACK_POINT.altitude - lag(test_db.TRACK_POINT.altitude) 
+                   over (order by test_db.TRACK_POINT.activity_id), 0) as altitude_gain
+                   from test_db.TRACK_POINT, test_db.ACTIVITY
+                   where test_db.ACTIVITY.user_id = %s
+                   and test_db.TRACK_POINT.activity_id = test_db.ACTIVITY.id
+                   and test_db.TRACK_POINT.altitude != -777
                 """
 
-        self.cursor.execute(query)
+        self.cursor.execute(get_users_query)
         rows = self.cursor.fetchall()
+        value_list = []
+        for user in rows:
+            self.cursor.execute(get_altitude_query % user[0])
+            gain = self.cursor.fetchall()
+            # print(list(gain))
+            test = {'Altitude_gain': gain}
+            data = pd.DataFrame(data=gain)
+            sum = data.sum(axis=0, skipna=True)
+            if len(sum) > 0:
+                meters = sum[0] / 3.2808
+                print(f'user: {user[0]} and meters: {meters}')
+                gain_dict = {user[0]: meters}
+            else:
+                meters = "Unknown because of 2500 line limit"
+                print(f'user{user[0]} and meters: {meters}')
+                gain_dict = {user[0]: meters}
+            value_list.append(gain_dict)
+
+        dataframe = pd.DataFrame(data=value_list, columns=['user', 'altitude gain'])
+        dataframe.sort_values(by=['altitude gain'], inplace=True, ascending=False)
+        print(dataframe.head(20))
+
         # Using tabulate to show the table in a nice way
-        print(
-            f"The top 20 user with the most altitude gained:"
-            f"\n {tabulate(rows, headers=self.cursor.column_names)}")
+        # print( f"The top 20 user with the most altitude gained:" f"\n {tabulate(rows, headers=self.cursor.column_names)}")
 
     # Nr. 12
     def select_all_users_with_invalid_activities(self):
