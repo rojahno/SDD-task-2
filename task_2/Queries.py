@@ -310,6 +310,9 @@ order by test_db.ACTIVITY.user_id
             if len(sum) > 0:
                 meters = sum[0] / 3.2808
                 gain_list.append(meters)
+            else:
+                meters = 0
+                gain_list.append(meters)
 
         value_list = {'user': user_list,
                       'altitude gain': gain_list}
