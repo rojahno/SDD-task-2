@@ -251,26 +251,7 @@ order by test_db.ACTIVITY.user_id
 
     # Nr. 12
     def select_all_users_with_invalid_activities(self):
-        query = """SELECT test_db.ACTIVITY.user_id,
-                    count(test_db.ACTIVITY.id) as nr_of_activities
-                FROM test_db.ACTIVITY join test_db.TRACK_POINT ON test_db.ACTIVITY.id = test_db.TRACK_POINT.activity_id
-                WHERE test_db.TRACK_POINT.data_time <= SUBDATE(test_db.TRACK_POINT.data_time,INTERVAL 5 minute)
-                AND (test_db.TRACK_POINT.id = test_db.TRACK_POINT.id +1) 
-                group by test_db.ACTIVITY.user_id
-                order by nr_of_activities desc 
-                """
-
-        query2 = """SELECT distinct user_id
-                FROM test_db.TRACK_POINT tp1 
-                inner join test_db.TRACK_POINT tp2 on tp2.id = tp1.id+1
-                inner join test_db.ACTIVITY a on a.id = tp1.activity_id
-                AND tp2.activity_id = tp1.activity_id
-                WHERE tp1.data_time <= SUBDATE(tp2.data_time,INTERVAL 5 minute) 
-                and (tp1.activity_id = a.id)
-                LIMIT 5
-                """
-
-        query3 = """SELECT a.user_id, count(DISTINCT tp1.activity_id)
+        query = """SELECT a.user_id, count(DISTINCT tp1.activity_id)
                 FROM test_db.TRACK_POINT tp1 
                 INNER JOIN test_db.TRACK_POINT tp2 ON tp2.id = tp1.id+1
                 AND tp2.activity_id = tp1.activity_id
@@ -280,7 +261,7 @@ order by test_db.ACTIVITY.user_id
                 GROUP BY user_id
                 """
 
-        self.cursor.execute(query3)
+        self.cursor.execute(query)
         rows = self.cursor.fetchall()
         # Using tabulate to show the table in a nice way
         print(
