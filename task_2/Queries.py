@@ -299,30 +299,28 @@ order by test_db.ACTIVITY.user_id
 
         self.cursor.execute(get_users_query)
         rows = self.cursor.fetchall()
-        value_list = []
+        user_list = []
+        gain_list = []
         for user in rows:
             self.cursor.execute(get_altitude_query % user[0])
             gain = self.cursor.fetchall()
-            # print(list(gain))
-            test = {'Altitude_gain': gain}
+            user_list.append(user)
             data = pd.DataFrame(data=gain)
             sum = data.sum(axis=0, skipna=True)
             if len(sum) > 0:
                 meters = sum[0] / 3.2808
+                gain_list.append(meters)
                 print(f'user: {user[0]} and meters: {meters}')
-                gain_dict = {user[0]: meters}
             else:
                 meters = "Unknown because of 2500 line limit"
+                gain_list.append(meters)
                 print(f'user{user[0]} and meters: {meters}')
-                gain_dict = {user[0]: meters}
-            value_list.append(gain_dict)
 
-        dataframe = pd.DataFrame(data=value_list, columns=['user', 'altitude gain'])
+        value_list = {'user': user_list,
+                      'altitude gain': gain_list}
+        dataframe = pd.DataFrame(data=value_list)
         dataframe.sort_values(by=['altitude gain'], inplace=True, ascending=False)
         print(dataframe.head(20))
-
-        # Using tabulate to show the table in a nice way
-        # print( f"The top 20 user with the most altitude gained:" f"\n {tabulate(rows, headers=self.cursor.column_names)}")
 
     # Nr. 12
     def select_all_users_with_invalid_activities(self):
